@@ -38,6 +38,10 @@ public class ElasticsearchTableConstants {
     public static final String ANNOTATION_ELEMENT_CONCURRENT_REQUESTS = "concurrent.requests";
     public static final String ANNOTATION_ELEMENT_FLUSH_INTERVAL = "flush.interval";
     public static final String ANNOTATION_ELEMENT_BACKOFF_POLICY_RETRY_NO = "backoff.policy.retry.no";
+    public static final String ANNOTATION_ELEMENT_BACKOFF_POLICY = "backoff.policy";
+    public static final String ANNOTATION_ELEMENT_BACKOFF_POLICY_CONSTANT_BACKOFF = "constantBackoff";
+    public static final String ANNOTATION_ELEMENT_BACKOFF_POLICY_EXPONENTIAL_BACKOFF = "exponentialBackoff";
+    public static final String ANNOTATION_ELEMENT_BACKOFF_POLICY_DISABLE = "disable";
     public static final String ANNOTATION_ELEMENT_BACKOFF_POLICY_WAIT_TIME = "backoff.policy.wait.time";
     public static final String ANNOTATION_ELEMENT_CLIENT_IO_THREAD_COUNT = "io.thread.count";
     public static final String ANNOTATION_ELEMENT_SSL_ENABLED = "ssl.enabled";
@@ -47,6 +51,8 @@ public class ElasticsearchTableConstants {
     public static final String ANNOTATION_ELEMENT_PAYLOAD_INDEX_OF_INDEX_NAME = "payload.index.of.index.name";
     public static final String ANNOTATION_ELEMENT_MEMBER_LIST = "elasticsearch.member.list";
     public static final String ANNOTATION_TYPE_MAPPINGS = "TypeMappings";
+    public static final String ANNOTATION_ELEMENT_CONNECTION_TIMEOUT = "httpclient.connection.timeout";
+    public static final String ANNOTATION_ELEMENT_SOCKET_TIMEOUT = "httpclient.socket.timeout";
 
     public static final String DEFAULT_HOSTNAME = "localhost";
     public static final int DEFAULT_PORT = 9200;
@@ -60,9 +66,11 @@ public class ElasticsearchTableConstants {
     public static final long DEFAULT_BULK_SIZE_IN_MB = 1;
     public static final int DEFAULT_CONCURRENT_REQUESTS = 0;
     public static final long DEFAULT_FLUSH_INTERVAL = 10;
+    public static final String DEFAULT_BACKOFF_POLICY = null;
     public static final int DEFAULT_BACKOFF_POLICY_RETRY_NO = 3;
     public static final long DEFAULT_BACKOFF_POLICY_WAIT_TIME = 1;
-    public static final int DEFAULT_IO_THREAD_COUNT = 1;
+    public static final int DEFAULT_IO_THREAD_COUNT = Runtime.getRuntime().availableProcessors(); // Because this is
+    // the recommended value for the HTTPClient.
     public static final boolean DEFAULT_SSL_ENABLED = false;
     public static final String DEFAULT_TRUSTSTORE_PASS = "wso2carbon";
     public static final String DEFAULT_TRUSTSTORE_TYPE = "jks";
@@ -70,6 +78,9 @@ public class ElasticsearchTableConstants {
     public static final String SETTING_INDEX_NUMBER_OF_SHARDS = "index.number_of_shards";
     public static final String SETTING_INDEX_NUMBER_OF_REPLICAS = "index.number_of_replicas";
 
+    public static final int DEFAULT_CONNECTION_TIMEOUT = 1000;
+    public static final int DEFAULT_SOCKET_TIMEOUT = 30000;
+    public static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT = 0; //https://github.com/elastic/elasticsearch/issues/24069
 
     public static final String MAPPING_PROPERTIES_ELEMENT = "properties";
     public static final String MAPPING_TYPE_ELEMENT = "type";

@@ -1,4 +1,4 @@
-# API Docs - v2.1.1
+# API Docs - v2.1.2-SNAPSHOT
 
 ## Store
 
@@ -8,7 +8,7 @@
 
 <span id="syntax" class="md-typeset" style="display: block; font-weight: bold;">Syntax</span>
 ```
-@Store(type="elasticsearch", hostname="<STRING>", port="<INT>", scheme="<STRING>", elasticsearch.member.list="<STRING>", username="<STRING>", password="<STRING>", index.name="<STRING>", payload.index.of.index.name="<INT>", index.alias="<STRING>", index.number.of.shards="<INT>", index.number.of.replicas="<INT>", bulk.actions="<INT>", bulk.size="<LONG>", concurrent.requests="<INT>", flush.interval="<LONG>", backoff.policy.retry.no="<INT>", backoff.policy.wait.time="<LONG>", ssl.enabled="<BOOL>", trust.store.type="<STRING>", trust.store.path="<STRING>", trust.store.pass="<STRING>")
+@Store(type="elasticsearch", hostname="<STRING>", port="<INT>", scheme="<STRING>", elasticsearch.member.list="<STRING>", username="<STRING>", password="<STRING>", index.name="<STRING>", payload.index.of.index.name="<INT>", index.alias="<STRING>", index.number.of.shards="<INT>", index.number.of.replicas="<INT>", bulk.actions="<INT>", bulk.size="<LONG>", concurrent.requests="<INT>", flush.interval="<LONG>", backoff.policy.retry.no="<INT>", backoff.policy.wait.time="<LONG>", ssl.enabled="<BOOL>", trust.store.type="<STRING>", trust.store.path="<STRING>", trust.store.pass="<STRING>", backoff.policy="<STRING>", backoff.policy.retry.no="<INT>", backoff.policy.wait.time="<INT>", httpclient.connection.timeout="<INT>", httpclient.socket.timeout="<INT>", httpclient.connection.request.timeout="<INT>")
 @PrimaryKey("PRIMARY_KEY")
 @Index("INDEX")
 ```
@@ -188,6 +188,54 @@
         <td style="vertical-align: top; word-wrap: break-word">Trust store password.</td>
         <td style="vertical-align: top">wso2carbon</td>
         <td style="vertical-align: top">STRING</td>
+        <td style="vertical-align: top">Yes</td>
+        <td style="vertical-align: top">No</td>
+    </tr>
+    <tr>
+        <td style="vertical-align: top">backoff.policy</td>
+        <td style="vertical-align: top; word-wrap: break-word">Provides a backoff policy(eg: constantBackoff, exponentialBackoff, disable) for bulk requests, whenever a bulk request is rejected due to resource constraints. Bulk processor will wait before the operation is retried internally.</td>
+        <td style="vertical-align: top">constantBackoff</td>
+        <td style="vertical-align: top">STRING</td>
+        <td style="vertical-align: top">Yes</td>
+        <td style="vertical-align: top">No</td>
+    </tr>
+    <tr>
+        <td style="vertical-align: top">backoff.policy.retry.no</td>
+        <td style="vertical-align: top; word-wrap: break-word">The maximum number of retries. Must be a non-negative number.</td>
+        <td style="vertical-align: top">3</td>
+        <td style="vertical-align: top">INT</td>
+        <td style="vertical-align: top">Yes</td>
+        <td style="vertical-align: top">No</td>
+    </tr>
+    <tr>
+        <td style="vertical-align: top">backoff.policy.wait.time</td>
+        <td style="vertical-align: top; word-wrap: break-word">The delay defines how long to wait between retry attempts. Must not be null.</td>
+        <td style="vertical-align: top">1</td>
+        <td style="vertical-align: top">INT</td>
+        <td style="vertical-align: top">Yes</td>
+        <td style="vertical-align: top">No</td>
+    </tr>
+    <tr>
+        <td style="vertical-align: top">httpclient.connection.timeout</td>
+        <td style="vertical-align: top; word-wrap: break-word">The timeout in milliseconds until a connection is established. A timeout value of zero is interpreted as an infinite timeout.</td>
+        <td style="vertical-align: top">1000ms</td>
+        <td style="vertical-align: top">INT</td>
+        <td style="vertical-align: top">Yes</td>
+        <td style="vertical-align: top">No</td>
+    </tr>
+    <tr>
+        <td style="vertical-align: top">httpclient.socket.timeout</td>
+        <td style="vertical-align: top; word-wrap: break-word">The delay defines how long to wait between retry attempts. Must not be null.</td>
+        <td style="vertical-align: top">30000ms</td>
+        <td style="vertical-align: top">INT</td>
+        <td style="vertical-align: top">Yes</td>
+        <td style="vertical-align: top">No</td>
+    </tr>
+    <tr>
+        <td style="vertical-align: top">httpclient.connection.request.timeout</td>
+        <td style="vertical-align: top; word-wrap: break-word">The timeout in milliseconds used when requesting a connection from the connection manager. A timeout value of zero is interpreted as an infinite timeout.</td>
+        <td style="vertical-align: top">-1</td>
+        <td style="vertical-align: top">INT</td>
         <td style="vertical-align: top">Yes</td>
         <td style="vertical-align: top">No</td>
     </tr>
