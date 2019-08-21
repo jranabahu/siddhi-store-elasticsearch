@@ -18,17 +18,18 @@
 package org.wso2.extension.siddhi.store.elasticsearch;
 
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.config.ConnectionConfig;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.log4j.Logger;
 import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -50,7 +51,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.ExceptionsHelper;
 import org.wso2.extension.siddhi.store.elasticsearch.exceptions.ElasticsearchEventTableException;
 import org.wso2.extension.siddhi.store.elasticsearch.exceptions.ElasticsearchServiceException;
 import org.wso2.extension.siddhi.store.elasticsearch.utils.ElasticsearchTableUtils;
@@ -85,7 +85,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,10 +206,9 @@ import static org.wso2.extension.siddhi.store.elasticsearch.utils.ElasticsearchT
                         description = "The delay defines how long to wait between retry attempts. Must not be null.",
                         type = {DataType.INT}, optional = true,
                         defaultValue = "30000ms"),
-                @Parameter(name = "httpclient.connection.request.timeout",
-                        description = "The timeout in milliseconds used when requesting a connection from the " +
-                                "connection manager. A timeout value of zero is interpreted as an infinite timeout.",
-                        type = {DataType.INT}, optional = true,
+                @Parameter(name = "connection.keepalive.duration",
+                        description = "The timeout in milliseconds used for http connection keep-alive",
+                        type = {DataType.LONG}, optional = true,
                         defaultValue = "-1")
         },
 
@@ -290,13 +288,14 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
     private int payloadIndexOfIndexName = DEFAULT_PAYLOAD_INDEX_OF_INDEX_NAME;
     private int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
     private int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
+    private long connectionKeepAliveDuration = DEFAULT_CONNECTION_KEEPALIVE_DURATION;
     private String listOfHostnames;
     private Map<String, String> typeMappings = new HashMap<>();
 
     /**
      * Initializing the Record Table
      *
-     * @param tableDefinition definintion of the table with annotations if any
+     * @param tableDefinition definition of the table with annotations if any
      * @param configReader    this hold the {@link AbstractRecordTable} configuration reader.
      */
     @Override
@@ -464,6 +463,11 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
             } else {
                 socketTimeout = Integer.parseInt(configReader.readConfig(ANNOTATION_ELEMENT_SOCKET_TIMEOUT,
                         String.valueOf(DEFAULT_SOCKET_TIMEOUT)));
+            }if (!ElasticsearchTableUtils.isEmpty(storeAnnotation.getElement(ANNOTATION_ELEMENT_CONNECTION_KEEPALIVE_DURATION))) {
+                connectionKeepAliveDuration = Integer.parseInt(storeAnnotation.getElement(ANNOTATION_ELEMENT_CONNECTION_KEEPALIVE_DURATION));
+            } else {
+                connectionKeepAliveDuration = Integer.parseInt(configReader.readConfig(ANNOTATION_ELEMENT_CONNECTION_KEEPALIVE_DURATION,
+                        String.valueOf(DEFAULT_CONNECTION_KEEPALIVE_DURATION)));
             } if (!ElasticsearchTableUtils.isEmpty(storeAnnotation.getElement(ANNOTATION_ELEMENT_MEMBER_LIST))) {
                 listOfHostnames = storeAnnotation.getElement(ANNOTATION_ELEMENT_MEMBER_LIST);
             }
@@ -482,9 +486,9 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials(userName, password));
-        HttpHost httpHostList[];
+        HttpHost[] httpHostList;
         if (listOfHostnames != null) {
-            String hostNameList[] = listOfHostnames.split(",");
+            String[] hostNameList = listOfHostnames.split(",");
             httpHostList = new HttpHost[hostNameList.length];
             for (int i = 0; i < httpHostList.length; i++) {
                 try {
@@ -501,7 +505,7 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
         }
         restHighLevelClient =
                 new RestHighLevelClient(RestClient.builder(httpHostList)
-                        .setFailureListener(new FailureListner())
+                        .setFailureListener(new FailureListener())
                         .setRequestConfigCallback(builder -> {
                             builder.setConnectTimeout(connectionTimeout);
                             builder.setSocketTimeout(socketTimeout);
@@ -511,7 +515,7 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
                         .setHttpClientConfigCallback(httpClientBuilder -> {
                             httpClientBuilder.disableConnectionState();
                             httpClientBuilder.disableAuthCaching();
-                            httpClientBuilder.setDefaultConnectionConfig(ConnectionConfig.custom().build());
+                            httpClientBuilder.setKeepAliveStrategy(new ElasticsearchKeepAliveStrategy());
                             httpClientBuilder.setDefaultIOReactorConfig(IOReactorConfig.custom().
                                     setIoThreadCount(ioThreadCount).build());
                             if (sslEnabled) {
@@ -567,15 +571,15 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
         bulkProcessorBuilder.setFlushInterval(TimeValue.timeValueSeconds(flushInterval));
         if (backoffPolicy == null) {
             bulkProcessorBuilder.setBackoffPolicy(BackoffPolicy.noBackoff());
-            logger.debug("### Starting elasticsearch client with noBackoff policy");
+            logger.debug("Starting elasticsearch client with noBackoff policy");
         } else if (backoffPolicy.equalsIgnoreCase(ANNOTATION_ELEMENT_BACKOFF_POLICY_CONSTANT_BACKOFF)) {
             bulkProcessorBuilder.setBackoffPolicy(BackoffPolicy.constantBackoff(
                     TimeValue.timeValueSeconds(backoffPolicyWaitTime), backoffPolicyRetryNo));
-            logger.debug("### Starting elasticsearch client with constantBackoff policy");
+            logger.debug("Starting elasticsearch client with constantBackoff policy");
         } else {
             bulkProcessorBuilder.setBackoffPolicy(BackoffPolicy.exponentialBackoff(
                     TimeValue.timeValueSeconds(backoffPolicyWaitTime), backoffPolicyRetryNo));
-            logger.debug("### Starting elasticsearch client with exponentialBackoff policy");
+            logger.debug("Starting elasticsearch client with exponentialBackoff policy");
         }
         bulkProcessor = bulkProcessorBuilder.build();
 
@@ -594,8 +598,23 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
         }
     }
 
-    static class FailureListner extends RestClient.FailureListener {
-        public FailureListner() {
+    /**
+    * This is to override the keepAlive duration of a connection.
+    */
+    class ElasticsearchKeepAliveStrategy extends DefaultConnectionKeepAliveStrategy{
+        @Override
+        public long getKeepAliveDuration(HttpResponse response, HttpContext context) {
+            long keepAliveDuration = super.getKeepAliveDuration(response, context);
+            // if the keep-alive duration is < 0, then we set the custom one that is defined in the configuration
+            if(keepAliveDuration < 0){
+                return connectionKeepAliveDuration;
+            }
+            return keepAliveDuration;
+        }
+    }
+
+    static class FailureListener extends RestClient.FailureListener {
+        public FailureListener() {
             super();
         }
 
@@ -973,10 +992,11 @@ public class ElasticsearchEventTable extends AbstractRecordTable {
             // This is to check if another node(in a multi-node deployment) has already created the index.
             // Need to go through all the suppressed exceptions to check whether this is a
             // resource_already_exists_exception.
-
             for (Throwable throwable : e.getSuppressed()) {
                 if (throwable.getMessage().contains("resource_already_exists_exception")) {
                     logger.warn("Index name : " + indexName + " already created for table id: " +
+                            tableDefinition.getId());
+                    logger.debug("Index name : " + indexName + " already created for table id: " +
                             tableDefinition.getId(), e);
                     return;
                 }

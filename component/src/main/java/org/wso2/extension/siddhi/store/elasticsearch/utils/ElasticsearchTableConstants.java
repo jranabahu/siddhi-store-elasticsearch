@@ -53,6 +53,7 @@ public class ElasticsearchTableConstants {
     public static final String ANNOTATION_TYPE_MAPPINGS = "TypeMappings";
     public static final String ANNOTATION_ELEMENT_CONNECTION_TIMEOUT = "httpclient.connection.timeout";
     public static final String ANNOTATION_ELEMENT_SOCKET_TIMEOUT = "httpclient.socket.timeout";
+    public static final String ANNOTATION_ELEMENT_CONNECTION_KEEPALIVE_DURATION = "connection.keepalive.duration";
 
     public static final String DEFAULT_HOSTNAME = "localhost";
     public static final int DEFAULT_PORT = 9200;
@@ -80,6 +81,7 @@ public class ElasticsearchTableConstants {
 
     public static final int DEFAULT_CONNECTION_TIMEOUT = 1000;
     public static final int DEFAULT_SOCKET_TIMEOUT = 30000;
+    public static final long DEFAULT_CONNECTION_KEEPALIVE_DURATION = -1L; // This is the default value in HTTP Client
     public static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT = 0; //https://github.com/elastic/elasticsearch/issues/24069
 
     public static final String MAPPING_PROPERTIES_ELEMENT = "properties";
